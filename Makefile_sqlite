@@ -1,0 +1,34 @@
+# Compiler and flags
+CXX = g++
+CXXFLAGS = -std=c++17 -O3 -Wall -fPIC -D_GLIBCXX_USE_CXX11_ABI=0
+
+# Torch & OpenCV paths
+TORCH_PATH = /usr/local/libtorch
+
+# Include directories
+CXXFLAGS += $(shell pkg-config --cflags opencv4)
+CXXFLAGS += -I$(TORCH_PATH)/include -I$(TORCH_PATH)/include/torch/csrc/api/include
+CXXFLAGS += $(shell python3 -m pybind11 --includes)
+
+# Libraries to link
+LDFLAGS = -Wl,-rpath,$(TORCH_PATH)/lib
+LDFLAGS += -L$(TORCH_PATH)/lib
+LDFLAGS += -ltorch -ltorch_cpu -lc10 -ltorch_python
+LDFLAGS += $(shell pkg-config --libs opencv4) -lpthread -ldl
+LDFLAGS += -lodbc -lodbcinst
+LDFLAGS += $(shell python3-config --ldflags)
+
+# Output shared object
+PY_MODULE = query_image.so
+
+# Target to build the module
+all: $(PY_MODULE)
+
+$(PY_MODULE): query_image.cpp feature_extractor.h query_image.h
+	@echo "Building $@..."
+	$(CXX) $(CXXFLAGS) -shared query_image.cpp -o $(PY_MODULE) $(LDFLAGS)
+
+clean:
+	rm -f $(PY_MODULE)
+
+.PHONY: all clean
